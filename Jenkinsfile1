@@ -39,7 +39,7 @@ pipeline {
 			post {
 				success{
 					sh "echo 'Send Email on success'"
-					mail bcc: '', body: 'Please go to "${BUILD_URL}" and verify the build', cc: '', from: '', replyTo: '', subject: 'Job \'"${JOB_NAME}"\' ("${BUILD_NUMBER}")--Successful', to: 'im.ajitlende@gmail.com'
+					mail bcc: '', body: "${BUILD_URL}", cc: '', from: '', replyTo: '', subject: "${JOB_NAME}""${BUILD_NUMBER}"--Successful', to: 'im.ajitlende@gmail.com'
 					
 				}
 				failure{
