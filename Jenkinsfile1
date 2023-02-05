@@ -1,57 +1,62 @@
 pipeline {
-    agent any
-
-	environment {	
-		DOCKERHUB_CREDENTIALS=credentials('dockerloginid')
-	} 
- 
-    tools {
-        // Install the Maven version configured as "M3" and add it to the path.
-        maven "MAVEN"
+   agent {
+        label 'Slave1'
     }
     
+        tools {
+        // Install the Maven version configured as "M3" and add it to the path.
+        maven "M3"
+    }
+
     stages {
-        stage('Build') {
+        stage('SCM') {
             steps {
                 // Get some code from a GitHub repository
-                //git branch: 'master', credentialsId: 'GIT_HUB_CREDENTIALS', url: //'https://github.com/LoksaiETA/Java-mvn-app2.git'
-				git 'https://github.com/LoksaiETA/Java-mvn-app2.git'
-                // Run Maven on a Unix agent.
-                //sh './gradle wrapper'
-                //sh './gradlew build'
-                sh "mvn -Dmaven.test.failure.ignore=true clean package"
-
-                // To run Maven on a Windows agent, use
-                // bat "mvn -Dmaven.test.failure.ignore=true clean package"
+                git 'https://github.com/Dignity26/Java-mvn-app2'
+				
+				                
             }
 		}
-
-        stage("Docker build"){
+			
+		stage('Build') {
             steps {
-				sh 'docker version'
-				sh 'docker build -t loksai-docker-demo .'
-				sh 'docker image list'
-				sh 'docker tag loksai-docker-demo loksaieta/loksai-docker-demo:loksai-docker-demo'
+                
+                // Run Maven on a Unix agent.
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+                
             }
-        }
-		stage('Login') {
-
-			steps {
-				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            
+            }
+		stage('Deploy to QA') {
+            steps {
+				script {
+                
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'Jenkins-QA', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '.', remoteDirectorySDF: false, removePrefix: 'target/', sourceFiles: 'target/mvn-hello-world.war')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+                
+            }
+			
 			}
-		}
-
-		stage('Push') {
-
-			steps {
-				sh 'docker push loksaieta/loksai-docker-demo:loksai-docker-demo'
+			post {
+				success{
+					sh "echo 'Send Email on success'"
+					mail bcc: '', body: '"Please go to "${BUILD_URL}" and verify the build"', cc: '', from: '', replyTo: '', subject: 'Job \'"${JOB_NAME}"\' ("${BUILD_NUMBER}")--Successful', to: 'im.ajitlende@gmail.com'
+					
+				}
+				failure{
+					sh "echo 'Send Email on failure'"
+					mail bcc: '', body: '"Please go to ${BUILD_URL} and verify the build"', cc: '', from: '', replyTo: '', subject: 'Job \'${JOB_NAME}\' (${BUILD_NUMBER})--Failure', to: 'im.ajitlende@gmail.com'
+					
+				}
 			}
-		}
+			
+            
+            }
 
-		stage("Deploy to K8s") {
-			steps {
-				sh "kubectl apply -f k8s-spring-boot-deployment.yml --kubeconfig="
-			}
+
 		}
-	}
-}
+		
+		        
+    }
+
+
+
